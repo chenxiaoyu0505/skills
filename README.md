@@ -4,7 +4,7 @@ A collection of **Agent Skills** for Claude — reusable capability packs that t
 assistant a specialized way of working. Each skill is a self-contained folder with a
 `SKILL.md` (instructions), plus the templates and references it pulls from on demand.
 
-This repo currently ships one skill: **`technical-pm`**.
+This repo ships two skills: **`technical-pm`** (write a PRD) and **`prd-review`** (audit a PRD someone already wrote).
 
 > 📖 English below · [中文说明见下半部分 ↓](#中文说明)
 
@@ -56,20 +56,68 @@ The skill reads `SKILL.md` first, then pulls the relevant files from `references
 
 ---
 
+## `prd-review` — PRD Completeness Review
+
+Inverts `technical-pm`: instead of *writing* a PRD, it **audits one someone already wrote**. Point it
+at an existing PRD / spec and it answers a single question — *can an engineer build the right thing
+from this without guessing, and if not, what exactly is missing?* It diagnoses; it does not rewrite.
+
+### What it produces
+
+| Need | What you get |
+|---|---|
+| **Completeness rating** | How complete the doc is, judged against the same technical-PM rubric (problem framing, scope in/out, user stories + acceptance criteria covering edges, success metrics, technical contracts, AI/ML eval bar, risks & dependencies) |
+| **Go / no-go verdict** | A **ready / conditional / not-ready** call on whether the PRD can go to development |
+| **Gap list** | A prioritized, specific list of exactly *what is missing and must be added* — not vague notes |
+| **HTML report** | The whole assessment delivered as a clear, self-contained **HTML report** |
+
+### When it activates
+
+On *reviewing / grading an existing PRD* — e.g. *"审一下这份 PRD"*, *"这份需求能交开发吗"*,
+*"PRD 还缺什么"*, *"is this spec ready for dev"* — not on writing one from scratch. It reuses the
+`technical-pm` body of knowledge, but inverts it: those files define *how a good PRD is written*, so
+here they become the **standard it judges against**.
+
+### Using it
+
+Copy the `prd-review/` folder into your skills directory (same as above), then point it at a PRD —
+e.g. `$prd-review`, or *"审一下这份需求文档,能不能交开发。"*
+
+---
+
 ## Repo structure · 目录结构
 
 ```
 skills/
 ├── README.md
-└── technical-pm/
-    ├── SKILL.md                       # the skill's instructions + workflow router
+├── technical-pm/
+│   ├── SKILL.md                       # the skill's instructions + workflow router
+│   ├── agents/
+│   │   └── openai.yaml                # interface manifest (display name, default prompt)
+│   ├── assets/                        # fill-in templates
+│   │   ├── prd-template.md
+│   │   ├── user-story-template.md
+│   │   └── risk-register-template.md
+│   └── references/                    # deep-dive references the skill loads on demand
+│       ├── discovery-and-requirements.md
+│       ├── technical-artifacts.md
+│       ├── ai-ml-products.md
+│       ├── prioritization-and-estimation.md
+│       ├── delivery-and-process.md
+│       ├── metrics.md
+│       ├── edge-cases-and-exceptions.md
+│       └── worked-example.md
+└── prd-review/
+    ├── SKILL.md                       # PRD-review instructions + rubric router
     ├── agents/
     │   └── openai.yaml                # interface manifest (display name, default prompt)
-    ├── assets/                        # fill-in templates
+    ├── assets/                        # templates + the HTML report shell
     │   ├── prd-template.md
     │   ├── user-story-template.md
-    │   └── risk-register-template.md
-    └── references/                    # deep-dive references the skill loads on demand
+    │   ├── risk-register-template.md
+    │   └── report-template.html
+    └── references/                    # the rubric + standards it judges against
+        ├── review-rubric.md
         ├── discovery-and-requirements.md
         ├── technical-artifacts.md
         ├── ai-ml-products.md
@@ -77,7 +125,8 @@ skills/
         ├── delivery-and-process.md
         ├── metrics.md
         ├── edge-cases-and-exceptions.md
-        └── worked-example.md
+        ├── worked-example.md
+        └── worked-review-example.md
 ```
 
 ---
@@ -87,7 +136,7 @@ skills/
 一组面向 Claude 的 **Agent Skills(技能包)**—— 可复用的能力模块,教模型用某种专业方式工作。
 每个技能都是一个自包含的文件夹,内含 `SKILL.md`(指令),以及它按需调用的模板和参考资料。
 
-本仓库目前包含一个技能:**`technical-pm`**。
+本仓库包含两个技能:**`technical-pm`**(写 PRD)和 **`prd-review`**(审别人已经写好的 PRD)。
 
 ### `technical-pm` —— 技术产品经理
 
@@ -126,3 +175,29 @@ skills/
    或"用 technical-pm 把这个想法写成 PRD"。
 
 模型会先读 `SKILL.md`,再按需拉取相关的 `references/` 和 `assets/`。
+
+### `prd-review` —— PRD 完整性审核
+
+与 `technical-pm` 相反:它不*写* PRD,而是**审别人已经写好的** PRD。给它一份已有的
+PRD / 需求文档,它只回答一个问题 —— *工程师能不能照着它把正确的东西造出来而不用猜?
+如果不能,到底还缺什么?* 它只诊断、不改写。
+
+**它能产出**
+
+| 你的需求 | 你会得到 |
+|---|---|
+| **完整度评分** | 用与 technical-pm 相同的评判标准(问题界定、范围做 / 不做、覆盖边界与异常的用户故事 + 验收标准、成功指标、技术契约、AI/ML 评测门槛、风险与依赖)衡量文档有多完整 |
+| **交付裁决** | 给出**可开工 / 有条件 / 不可开工**的判断,回答这份 PRD 能不能交开发 |
+| **缺失项清单** | 一份按优先级排列、具体的"还缺什么、必须补齐什么"清单,而不是含糊的意见 |
+| **HTML 报告** | 整份评估以清晰、自包含的 **HTML 报告** 交付 |
+
+**什么时候触发**
+
+在*审核 / 打分一份已有的 PRD* 时 —— 例如"审一下这份 PRD""这份需求能交开发吗"
+"PRD 还缺什么""is this spec ready for dev" —— 而不是从零写一份。它复用 `technical-pm`
+的知识体系,但反过来用:那些文件定义了*一份好 PRD 该怎么写*,在这里就成了**它据以评判的标准**。
+
+**如何使用**
+
+把 `prd-review/` 文件夹复制到你的技能目录(同上),然后把一份 PRD 交给它 —— 例如
+`$prd-review`,或"审一下这份需求文档,能不能交开发"。
